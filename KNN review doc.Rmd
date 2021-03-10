@@ -1,0 +1,120 @@
+---
+title: "Assigment - kNN DIY"
+author:
+  - Luc Heimans - Author
+  - Daan Plass - Reviewer
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+   html_notebook:
+    toc: true
+    toc_depth: 2
+---
+
+# setup
+
+```{r message=FALSE, warning=FALSE}
+install.packages('caret', dependencies = TRUE)
+library(ggplot2)
+library(caret)
+```
+
+
+```{r message=FALSE, warning=FALSE}
+install.packages("class")
+library(class)
+library(tidyverse)
+library(googlesheets4)
+library(class)
+```
+
+```{r}
+Rawd_review <- read.csv("https://raw.githubusercontent.com/HAN-M3DM-Data-Mining/assignments/master/datasets/KNN-occupancy.csv")
+```
+
+## Business Understanding
+The business case in this instance is to experiment with the KNN machine learning methodology, following the CRISP DM model. The goal is to, as accurately as possible, predict the value of a label, based on KNN learning. In this case I will try to classify the value of the label; occupancy as accurately as possible, using KNN methodology.
+
+## Data Understanding
+In this step I will explore the data set to become familiar with the data and understand its structure.
+
+What becomes clear is that I will be dealing with structured data. Furthermore, occupancy consists of integer values. Data consists of characters and the remaining variables are numerical.
+
+```{r}
+str(Rawd_review)
+head(Rawd_review)
+```
+
+Since the label is occupancy in this case, I would like to also explore the relationships between outcomes.
+
+```{r}
+cntRawd_review <- table(Rawd_review$Occupancy)
+propRawd_review <- round(prop.table(cntRawd_review)*100, digits = 1)
+
+print(cntRawd_review)
+print(propRawd_review)
+```
+
+What becomes clear is that occupancy with a value of 0 is 79% more common than a value of 1.
+
+## Data Preparation
+
+In this step I will clean the data to remain with values that are of value to classifying new data.
+The variable 'date' is not of relevance in creating a model which should predict the label; occupancy, and thus will be removed from the dataset.
+
+```{r}
+cleand_review <- Rawd_review[-1]
+head(cleand_review)
+```
+
+I will also search for possible N/A values:
+
+```{r}
+indx_review <- apply(cleand_review, 2, function(cleand_review) any(is.na(cleand_review)))
+colnames(indx_review)
+```
+
+Colnames command answers "NULL", meaning there are no values in any of the columns which consist of N/A.
+
+To eliminate biases and overfitting of the algorithm (Freecodecamp, 2020), data is splitted into two sets; a training and test set.
+
+```{r}
+train_df_review <- cleand_review[1:7000,]
+testd_df_review <- cleand_review[7000:8143,]
+
+train_label_review <- cleand_review[1:7000, 1]
+test_label_review <- cleand_review[7000:8143, 1]
+```
+
+## Modeling
+
+I will change the names used for describing the data set related vectors (rawd, cleand, testd etc.) to 'occupancy', since this was the original name of the data set.
+
+The code for generating the knn model:
+
+```{r}
+
+Occupancy_pred_review <- knn(train_df_review,testd_df_review, train_label_review, k= 90) 
+
+head(Occupancy_pred_review)
+
+```
+
+## Evaluation and Deployment
+The model is created, and will be evaluated by running the prediction against the test data set, using the confusionmatrix command.
+
+```{r}
+
+confusionMatrix(table(Occupancy_pred_review, test_label_review)) 
+
+```
+
+The confusion matrix cannot be ran so I cannot draw any conclusions...
+
+## reviewer adds suggestions for improving the model
+
+Use ### to indicate a change you made to this review document.
+
+References
+https://datasharkie.com/how-to-normalize-data-in-r/
+https://www.freecodecamp.org/news/key-machine-learning-concepts-explained-dataset-splitting-and-random-forest/
+https://towardsdatascience.com/decoding-the-confusion-matrix-bb4801decbb
