@@ -93,7 +93,7 @@ The code for generating the knn model:
 
 ```{r}
 
-Occupancy_pred_review <- knn(train_df_review,testd_df_review, train_label_review, k= 90) 
+Occupancy_pred_review <- knn(train_df_review,testd_df_review, train_label_review, k= 89) 
 
 head(Occupancy_pred_review)
 
