@@ -81,8 +81,8 @@ To eliminate biases and overfitting of the algorithm (Freecodecamp, 2020), data 
 train_df_review <- cleand_review[1:7000,]
 testd_df_review <- cleand_review[7000:8143,]
 
-train_label_review <- cleand_review[1:7000, 1]
-test_label_review <- cleand_review[7000:8143, 1]
+train_label_review <- cleand_review[1:7000, 6]
+test_label_review <- cleand_review[7000:8143, 6]
 ```
 
 ## Modeling
@@ -108,7 +108,13 @@ confusionMatrix(table(Occupancy_pred_review, test_label_review))
 
 ```
 
-The confusion matrix cannot be ran so I cannot draw any conclusions...
+from the confusion matrix, the following model performances can be derived following guidelines set-up by Prateek Sharma (2019).
+
+- all predictions made by the model were either "True positive" or "True negative", indicating no value was predicted wrongly out of the test data set. This statement is backed up by the  accuracy level being 1, indicating all values were correctly predicted (Prateek Sharma, 2019). 
+
+
+All in all, one can assume that the set-up KNN learning model is able to correctly predict the occupancy levels for all of the test label.
+
 
 ## reviewer adds suggestions for improving the model
 
