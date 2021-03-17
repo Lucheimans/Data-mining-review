@@ -1,0 +1,159 @@
+---
+title: "Assigment - kNN DIY"
+author:
+  - Luc Heimans - Author
+  - Daan Plass - Reviewer
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+   html_notebook:
+    toc: true
+    toc_depth: 2
+---
+
+# setup
+
+```{r}
+library(ggplot2)
+library(caret)
+```
+
+
+```{r}
+library(class)
+library(tidyverse)
+library(googlesheets4)
+library(class)
+```
+
+```{r}
+Rawd <- read.csv("https://raw.githubusercontent.com/HAN-M3DM-Data-Mining/assignments/master/datasets/KNN-occupancy.csv")
+```
+
+
+## Business Understanding
+The business case in this instance is to experiment with the KNN machine learning methodology, following the CRISP DM model. The goal is to, as accurately as possible, predict the value of a label, based on KNN learning. In this case I will try to classify the value of the label; occupancy as accurately as possible, using KNN methodology.
+
+## Data Understanding
+In this step I will explore the data set to become familiar with the data and understand its structure.
+
+What becomes clear is that I will be dealing with structured data. Furthermore, occupancy consists of integer values. Data consists of characters and the remaining variables are numerical.
+
+```{r}
+str(Rawd)
+head(Rawd)
+```
+
+Since the label is occupancy in this case, I would like to also explore the relationships between outcomes.
+
+```{r}
+cntRawd <- table(Rawd$Occupancy)
+propRawd <- round(prop.table(cntRawd)*100, digits = 1)
+
+print(cntRawd)
+print(propRawd)
+```
+
+What becomes clear is that occupancy with a value of 0 is 79% more common than a value of 1.
+
+## Data Preparation
+
+In this step I will clean the data to remain with values that are of value to classifying new data.
+The variable 'date' is not of relevance in creating a model which should predict the label; occupancy, and thus will be removed from the dataset.
+
+```{r}
+cleand <- Rawd[-1]
+head(cleand)
+```
+
+I will also search for possible N/A values.
+
+```{r}
+indx <- apply(cleand, 2, function(cleand) any(is.na(cleand)))
+colnames(indx)
+```
+
+Colnames command answers "NULL", meaning there are no values in any of the columns which consist of N/A.
+
+Additionally, I want to check if there is a need for standardization of the values. I will do this by checking a summary of each variable (except the label) to see if there is a potential outlier which could influence the outcome too significantly. 
+
+```{r}
+summary(Rawd[c("Temperature", "Humidity", "Light", "CO2", "HumidityRatio")])
+```
+There is a clear need for standardization since 'Light', 'CO2' and 'HumidityRatio' have very different means compared to 'Temperature' and 'Humidity', and KNN is sensitive to such big differences (Datasharkie, N/A).
+
+For the sake of keeping overview of the differently used data frames, I will create a second version of the cleand data frame to normalize upon.
+
+```{r}
+cleand2 <- Rawd[-1]
+head(cleand2)
+```
+
+
+```{r}
+normalize <- function(x){return((x - min(x))/ (max(x) - min(x)))}
+
+nCols <- dim(cleand2)[6]
+cleanDF_n <- sapply(1:5,
+                    function(x) {
+  normalize(cleand2[,x])
+}) %>% as.data.frame()
+
+View(cleand2)
+summary(cleand2)
+
+```
+
+The cleaned and normalized data can now be found under ## cleand2. As can be seen with the summary command, the data is now normalized.
+
+To eliminate biases and overfitting of the algorithm (Freecodecamp, 2020), data is splitted into two sets; a training and test set.
+
+```{r}
+train_df <- cleand2[1:7000,]
+testd_df <- cleand2[7000:8143,]
+
+train_label <- cleand2[1:7000, 6]
+test_label <- cleand2[7000:8143, 6]
+```
+
+
+## Modeling
+
+I will change the names used for describing the data set related vectors (rawd, cleand, testd etc.) to 'occupancy', since this was the original name of the data set.
+
+Furthermore, according to Amey Band (2020), the best way to find the optimal value for K is by taking the square root of N (observations). In this case this means a K of 90 would be suitable. However, you should make K an odd number, hence the number 89 is chosen.
+
+The code for generating the knn model:
+
+```{r}
+
+Occupancy_pred <- knn(train_df,testd_df, train_label, k= 89) 
+
+head(Occupancy_pred)
+
+```
+
+
+## Evaluation and Deployment
+The model is created, and will be evaluated by running the prediction against the test data set, using the confusionmatrix command.
+
+
+```{r}
+
+confusionMatrix(table(Occupancy_pred, test_label)) 
+
+```
+
+From the confusion matrix, the following model performances can be derived following guidelines set-up by Prateek Sharma (2019).
+
+- all predictions made by the model were either "True positive" or "True negative", indicating no value was predicted wrongly out of the test data set. This statement is backed up by the  accuracy level being 1, indicating all values were correctly predicted (Prateek Sharma, 2019). 
+
+
+All in all, one can assume that the set-up KNN learning model is able to correctly predict the occupancy levels for all of the test label.
+
+reviewer adds suggestions for improving the model
+
+References
+https://datasharkie.com/how-to-normalize-data-in-r/
+https://www.freecodecamp.org/news/key-machine-learning-concepts-explained-dataset-splitting-and-random-forest/
+https://towardsdatascience.com/decoding-the-confusion-matrix-bb4801decbb
+
