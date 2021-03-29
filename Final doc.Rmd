@@ -1,0 +1,16 @@
+---
+title: "Final doc"
+author: "Luc heimans"
+date: "3/29/2021"
+output: html_document
+---
+
+According to F. Provost et al. (2019), data mining is the process of extracting knowledge from data via technologies which follow data science principles. Tasks that a data mining project may touch upon include: classification, regression, clustering, co-occurence grouping and so on (F. Provost et al, 2019).
+
+A methodology for data mining is the CRISP-DM model, which is an iterative data mining process wherein a certain problem is solved.
+
+*figure 1: crisp dm model*.
+
+As can be derived from figure 1, the CRISP-DM model follows certain steps; starting with business understanding. In this step, the problem is to be engineered to fit with data science fundamentals so that data mining can be used to solve it. The thesis should reflect the business need as well as data science principles (F. Provost et al, 2019). The next step is data understanding wherein one tries to understand the strengths and limitations of the data to in the end mathc the data with the structure of the business problem (F. Provost et al, 2019). The third step is data preparation, data is manipulated and converted in forms that yield better results and are conform the data mining techniques (F. Provost et al, 2019). According to F. provost et al. (2019), it is important to consider 'leaks' in this step since they can limit the outputs of the process. Step four is about modeling which is where the data mining techniques are deployed to capture a pattern or (dis)regularities in the data (F. Provost et al, 2019). The fifth step is evaluation; F. Provost et al. (2019) concludes that the purpose of this task is to assess the data mining outputs rigorously to gain confidence that results are valid and reliable. According to F. provost et al. (2019) valuating results should be done both quantitative and qualitative in either a lab environment or development environment to ensure the model fits the business problems/needs and complies with relevant stakeholders. The last step in the data mining process is deployment; herein the model is deployed to realize some form of return on investment (F. Provost et al, 2019). At any stage in this process, the team may find that the process is not conform some of its previous steps, meaning the process is to restart from the point it followed a wrong path.
+
+Data mining might be considered similar to data science or even machine learning, however there are some significant differences between these subjects. Starting with data science, according to P. Pedamkar (n.a.), data science is a multidisciplinary scientific study wherein data mining is a certain task. Furthermore, the purpose of data science is very wide, it ranges from creating predictive models to unmasking unknown facts whereas data mining is only about finding trends in data previously not known. Machine learning differs from data mining in its purpose; Data mining is designed to extract the rules from large quantities of data, while machine learning teaches a computer how to learn and comprehend the given parameters (S. Arora, 2021). Also the human factor is a big difference between the two as data mining relies on human input and is created to make use of by people whereas machine learning depends on if it can learn on itself.
