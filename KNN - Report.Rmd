@@ -1,0 +1,324 @@
+---
+title: "Assigment - kNN DIY"
+author:
+  - Luc Heimans - Author
+  - Daan Plass - Reviewer
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+   html_notebook:
+    toc: true
+    toc_depth: 2
+---
+
+## Introduction
+
+According to F. Provost et al. (2019), data mining is the process of extracting knowledge from data via technologies which follow data science principles. Tasks that a data mining project may touch upon include: classification, regression, clustering, co-occurrence grouping and so on (F. Provost et al, 2019).
+
+A methodology for data mining is the CRISP-DM model, which is an iterative data mining process wherein a certain problem is solved.
+
+As can be derived from figure 1, the CRISP-DM model follows certain steps; starting with business understanding. In this step, the problem is to be engineered to fit with data science fundamentals so that data mining can be used to solve it. The thesis should reflect the business need as well as data science principles (F. Provost et al, 2019). The next step is data understanding wherein one tries to understand the strengths and limitations of the data to in the end math the data with the structure of the business problem (F. Provost et al, 2019). The third step is data preparation, data is manipulated and converted in forms that yield better results and are conform the data mining techniques (F. Provost et al, 2019). According to F. provost et al. (2019), it is important to consider 'leaks' in this step since they can limit the outputs of the process. Step four is about modeling which is where the data mining techniques are deployed to capture a pattern or (dis)regularities in the data (F. Provost et al, 2019). The fifth step is evaluation; F. Provost et al. (2019) concludes that the purpose of this task is to assess the data mining outputs rigorously to gain confidence that results are valid and reliable. According to F. provost et al. (2019) valuating results should be done both quantitative and qualitative in either a lab environment or development environment to ensure the model fits the business problems/needs and complies with relevant stakeholders. The last step in the data mining process is deployment; herein the model is deployed to realize some form of return on investment (F. Provost et al, 2019). At any stage in this process, the team may find that the process is not conform some of its previous steps, meaning the process is to restart from the point it followed a wrong path.
+
+Data mining might be considered similar to data science or even machine learning, however there are some significant differences between these subjects. Starting with data science, according to P. Pedamkar (n.a.), data science is a multidisciplinary scientific study wherein data mining is a certain task. Furthermore, the purpose of data science is very wide, it ranges from creating predictive models to unmasking unknown facts whereas data mining is only about finding trends in data previously not known. Machine learning differs from data mining in its purpose; Data mining is designed to extract the rules from large quantities of data, while machine learning teaches a computer how to learn and comprehend the given parameters (S. Arora, 2021). Also the human factor is a big difference between the two as data mining relies on human input and is created to make use of by people whereas machine learning depends on if it can learn on itself.
+
+# setup
+
+```{r}
+library(ggplot2)
+library(caret)
+library(class)
+library(tidyverse)
+library(googlesheets4)
+```
+
+```{r}
+Rawd <- read.csv("https://raw.githubusercontent.com/HAN-M3DM-Data-Mining/assignments/master/datasets/KNN-occupancy.csv")
+```
+
+
+## Business Understanding
+The business case in this instance is to experiment with the KNN machine learning methodology, following the CRISP DM model. The goal is to, as accurately as possible, predict the value of a label, based on KNN learning. In this case I will try to classify the value of the label; occupancy as accurately as possible, using KNN methodology.
+
+## Data Understanding
+In this step I will explore the data set to become familiar with the data and understand its structure.
+
+What becomes clear is that I will be dealing with structured data. Furthermore, occupancy consists of integer values. Data consists of characters and the remaining variables are numerical.
+
+```{r}
+str(Rawd)
+head(Rawd)
+```
+
+Since the label is occupancy in this case, I would like to also explore the relationships between outcomes.
+
+```{r}
+cntRawd <- table(Rawd$Occupancy)
+propRawd <- round(prop.table(cntRawd)*100, digits = 1)
+
+print(cntRawd)
+print(propRawd)
+```
+
+What becomes clear is that occupancy with a value of 0 is 79% more common than a value of 1.
+
+## Data Preparation
+
+In this step I will clean the data to remain with values that are of value to classifying new data.
+The variable 'date' is not of relevance in creating a model which should predict the label; occupancy, and thus will be removed from the dataset.
+
+```{r}
+cleand <- Rawd[-1]
+head(cleand)
+```
+
+I will also search for possible N/A values.
+
+```{r}
+indx <- apply(cleand, 2, function(cleand) any(is.na(cleand)))
+colnames(indx)
+```
+
+Colnames command answers "NULL", meaning there are no values in any of the columns which consist of N/A.
+
+Additionally, I want to check if there is a need for standardization of the values. I will do this by checking a summary of each variable (except the label) to see if there is a potential outlier which could influence the outcome too significantly. 
+
+```{r}
+summary(Rawd[c("Temperature", "Humidity", "Light", "CO2", "HumidityRatio")])
+```
+There is a clear need for standardization since 'Light', 'CO2' and 'HumidityRatio' have very different means compared to 'Temperature' and 'Humidity', and KNN is sensitive to such big differences (Datasharkie, N/A).
+
+For the sake of keeping overview of the differently used data frames, I will create a second version of the cleand data frame to normalize upon.
+
+```{r}
+cleand2 <- Rawd[-1]
+head(cleand2)
+```
+
+
+```{r}
+normalize <- function(x){return((x - min(x))/ (max(x) - min(x)))}
+
+nCols <- dim(cleand2)[6]
+cleanDF_n <- sapply(1:5,
+                    function(x) {
+  normalize(cleand2[,x])
+}) %>% as.data.frame()
+
+View(cleandDF_n)
+summary(cleanDF_n)
+
+```
+
+The cleaned and normalized data can now be found under ## cleand2. As can be seen with the summary command, the data is now normalized.
+
+To eliminate biases and overfitting of the algorithm (Freecodecamp, 2020), data is splitted into two sets; a training and test set.
+
+```{r}
+train_df <- cleanDF_n[1:7000,]
+testd_df <- cleanDF_n[7000:8143,]
+
+train_label <- cleand2[1:7000, 6]
+test_label <- cleand2[7000:8143, 6]
+```
+
+
+## Modeling
+
+I will change the names used for describing the data set related vectors (rawd, cleand, testd etc.) to 'occupancy', since this was the original name of the data set.
+
+Furthermore, according to Amey Band (2020), the best way to find the optimal value for K is by taking the square root of N (observations). In this case this means a K of 90 would be suitable. However, you should make K an odd number, hence the number 89 is chosen.
+
+The code for generating the knn model:
+
+```{r}
+
+Occupancy_pred <- knn(train_df,testd_df, train_label, k= 89) 
+
+head(Occupancy_pred)
+
+```
+
+
+## Evaluation and Deployment
+The model is created, and will be evaluated by running the prediction against the test data set, using the confusionmatrix command.
+
+
+```{r}
+
+confusionMatrix(table(Occupancy_pred, test_label)) 
+
+```
+
+From the confusion matrix, the following model performances can be derived following guidelines set-up by Prateek Sharma (2019).
+
+# Conclusion
+
+- An accuracy of 0.8234 was achieved. This is not too high, however, according to S. Prateek (2019) still sufficient.
+
+All in all, one can assume that the set-up KNN learning model is able to correctly predict the occupancy levels with a factor of 0.8234.
+
+
+
+
+
+############################################   REVIEW STARTS HERE  ###############################################################
+### Changes in the review document compared to what was to be reviewed are indicated with "### REVIEW ADJUSTEMENT X"
+
+
+
+
+
+# setup
+
+```{r message=FALSE, warning=FALSE}
+
+library(ggplot2)
+library(caret)
+library(tidyverse)
+library(googlesheets4)
+library(class)
+```
+
+```{r}
+Rawd_review <- read.csv("https://raw.githubusercontent.com/HAN-M3DM-Data-Mining/assignments/master/datasets/KNN-occupancy.csv")
+```
+
+## Business Understanding
+The business case in this instance is to experiment with the KNN machine learning methodology, following the CRISP DM model. The goal is to, as accurately as possible, predict the value of a label, based on KNN learning. In this case I will try to classify the value of the label; occupancy as accurately as possible, using KNN methodology.
+
+## Data Understanding
+In this step I will explore the data set to become familiar with the data and understand its structure.
+
+What becomes clear is that I will be dealing with structured data. Furthermore, occupancy consists of integer values. Data consists of characters and the remaining variables are numerical.
+
+```{r}
+str(Rawd_review)
+head(Rawd_review)
+```
+
+Since the label is occupancy in this case, I would like to also explore the relationships between outcomes.
+
+```{r}
+cntRawd_review <- table(Rawd_review$Occupancy)
+propRawd_review <- round(prop.table(cntRawd_review)*100, digits = 1)
+print(cntRawd_review)
+print(propRawd_review)
+```
+
+What becomes clear is that occupancy with a value of 0 is 79% more common than a value of 1.
+
+## Data Preparation
+
+In this step I will clean the data to remain with values that are of value to classifying new data.
+The variable 'date' is not of relevance in creating a model which should predict the label; occupancy, and thus will be removed from the dataset.
+
+```{r}
+cleand_review <- Rawd_review[-1]
+head(cleand_review)
+```
+
+I will also search for possible N/A values:
+
+```{r}
+indx_review <- apply(cleand_review, 2, function(cleand_review) any(is.na(cleand_review)))
+colnames(indx_review)
+```
+
+Colnames command answers "NULL", meaning there are no values in any of the columns which consist of N/A.
+
+### REVIEW ADJUSTMENT 1
+Turning the variable "Occupancy" into a factor because the model requires this instead of a variable classified as a factor.
+
+```{r}
+cleand_review$Occupancy <- factor(cleand_review$Occupancy, levels = c("1", "0"), labels = c("Yes", "No")) %>% relevel("Yes")
+head(cleand_review, 10)
+```
+
+### REVIEW ADJUSTMENT 2
+Making a summary to have a closer look at different variables to define the ranges
+
+```{r}
+summary(cleand_review[c("Temperature", "Humidity", "Light","CO2", "HumidityRatio")])
+```
+
+ The range of between different variables is very different this could potentially cause problems for modeling
+because e.g. CO2 will have a larger impact on the distance calculation than the Temperature
+### REVIEW ADJUSTMENT 3
+Creating a function that will normailize the range, so eliminating the big differences in range to provent modeling problems.
+This function will turn values into a percentage of the maximum.
+
+```{r}
+normalize <- function(x) {return ((x - min(x)) / (max(x) - min(x)))}
+
+testSet1 <- c(1:6)
+testSet2 <- c(1:6) * 10
+
+cat("testSet1:", testSet1, "\n")
+cat("testSet2:", testSet2, "\n")
+
+cat("Normalized testSet1:", normalize(testSet1), "\n")
+cat("Normalized testSet2:", normalize(testSet2))
+```
+
+
+### REVIEW ADJUSTMENT 4
+Normalizing the range of all variables except "Occupancy", so eliminating the big differences in range to prevent modeling problems.
+
+```{r}
+nCols <- dim(cleand_review)[6]
+cleand_review_n <- sapply(1:5,
+function(x) {
+normalize(cleand_review[,x])
+}) %>% as.data.frame()
+
+names(cleand_review_n) <- c("Temperature", "Humidity", "Light","CO2", "HumidityRatio")
+
+summary(cleand_review_n[c("Temperature", "Humidity", "Light","CO2", "HumidityRatio")])
+```
+
+
+To eliminate biases and overfitting of the algorithm (Freecodecamp, 2020), data is splitted into two sets; a training and test set.
+
+### REVIEW ADJUSTMENT 5
+changing the data set from "cleand_review" to "cleand_review_n" for both "train_df_review" and "testd_df_review"
+
+```{r}
+train_df_review <- cleand_review_n[1:7000,]
+testd_df_review <- cleand_review_n[7000:8143,]
+train_label_review <- cleand_review[1:7000, 6]
+test_label_review <- cleand_review[7000:8143, 6]
+```
+
+## Modeling
+
+I will change the names used for describing the data set related vectors (rawd, cleand, testd etc.) to 'occupancy', since this was the original name of the data set.
+
+The code for generating the knn model:
+
+### REVIEW ADJUSTMENT 6
+I added train = as.matrix, test = as.matrix, cl = as.matrix and added brackets to train_df_review, testd_df_review, train_label_review
+
+```{r}
+Occupancy_pred_review <- knn(train = as.matrix(train_df_review), test = as.matrix(testd_df_review), cl = as.matrix(train_label_review), k= 89)
+head(Occupancy_pred_review)
+```
+
+
+## Evaluation and Deployment
+The model is created, and will be evaluated by running the prediction against the test data set, using the confusionmatrix command.
+
+```{r}
+#confusionMatrix(table(Occupancy_pred_review, test_label_review))
+
+confusionMatrix(Occupancy_pred_review, test_label_review)
+```
+
+# Conclusion
+- The model has an accuracy of 0.8234, this is fairly low so this model is too unreliable to use. 
+
+References
+https://datasharkie.com/how-to-normalize-data-in-r/
+https://www.freecodecamp.org/news/key-machine-learning-concepts-explained-dataset-splitting-and-random-forest/
+https://towardsdatascience.com/decoding-the-confusion-matrix-bb4801decbb
+F. provost et al (2019) Data Science for Business.
+https://www.educba.com/data-science-vs-data-mining/
+https://www.simplilearn.com/data-mining-vs-machine-learning-article#:~:text=Data%20mining%20is%20designed%20to,total%20of%20the%20gathered%20data.
